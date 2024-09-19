@@ -13,6 +13,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Objects;
  
 
@@ -74,7 +75,7 @@ public class CalcReflexBEServer {
         serverSocket.close();
  
     }
- 
+
     public static String getDefaultResponse() {
         String htmlcode
                 = "HTTP/1.1 200 OK\r\n"
@@ -88,33 +89,36 @@ public class CalcReflexBEServer {
                 + "        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
                 + "    </head>\n"
                 + "    <body>\n"
-                + "        <h1>Form with GET</h1>\n"
-                + "        <form action=\"/hello\">\n"
-                + "            <label for=\"name\">Name:</label><br>\n"
-                + "            <input type=\"text\" id=\"name\" name=\"name\" value=\"John\"><br><br>\n"
-                + "            <input type=\"button\" value=\"Submit\" onclick=\"loadGetMsg()\">\n"
+                + "        <h1>Calculate</h1>\n"
+                + "        <form onsubmit=\"return false;\">\n"
+                + "            <label for=\"compute\">compute:</label><br>\n"
+                + "            <input type=\"text\" id=\"compute\" name=\"compute\"><br>\n"
+                + "            <label for=\"params\">Parameters (comma separated):</label><br>\n"
+                + "            <input type=\"text\" id=\"params\" name=\"params\"><br><br>\n"
+                + "            <input type=\"button\" value=\"Submit\" onclick=\"computeResult()\">\n"
                 + "        </form> \n"
-                + "        <div id=\"getrespmsg\"></div>\n"
+                + "        <div id=\"result\"></div>\n"
                 + "\n"
                 + "        <script>\n"
-                + "            function loadGetMsg() {\n"
-                + "                let nameVar = document.getElementById(\"name\").value;\n"
+                + "            function compute() {\n"
+                + "                let command = document.getElementById(\"compute\").value;\n"
+                + "                let params = document.getElementById(\"params\").value.split(',');\n"
                 + "                const xhttp = new XMLHttpRequest();\n"
                 + "                xhttp.onload = function() {\n"
-                + "                    document.getElementById(\"getrespmsg\").innerHTML =\n"
-                + "                    this.responseText;\n"
+                + "                    const response = JSON.parse(this.responseText);\n"
+                + "                    document.getElementById(\"result\").innerHTML = 'Result: ' + response.result;\n"
                 + "                }\n"
-                + "                xhttp.open(\"GET\", \"/computar?name=\"+nameVar);\n"
+                + "                xhttp.open(\"GET\", \"/computar?command=\" + compute + \"&params=\" + params.join(','));\n"
                 + "                xhttp.send();\n"
                 + "            }\n"
                 + "        </script>\n"
                 + "\n"
-                + "        </script>\n"
                 + "    </body>\n"
                 + "</html>";
         return htmlcode;
     }
- 
+
+
     public static URI getRequestURI(String firstline) throws URISyntaxException {
  
         String ruri = firstline.split(" ")[1];
@@ -132,4 +136,35 @@ public class CalcReflexBEServer {
         String resp = m.invoke(null, (Object) params).toString();
         return "";
     }
+
+    public String compute(String command, Double[] params) {
+        try {
+            if ("bbl".equalsIgnoreCase(command)) {
+                bubbleSort(params);
+                return Arrays.toString(params);
+            } else {
+                Method method = Math.class.getMethod(command, Double.TYPE);
+                Double result = (Double) method.invoke(null, params[0]);
+                return result.toString();
+            }
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    private void bubbleSort(Double[] array) {
+        boolean sorted;
+        do {
+            sorted = true;
+            for (int i = 0; i < array.length - 1; i++) {
+                if (array[i] > array[i + 1]) {
+                    Double temp = array[i];
+                    array[i] = array[i + 1];
+                    array[i + 1] = temp;
+                    sorted = false;
+                }
+            }
+        } while (!sorted);
+    }
 }
+
